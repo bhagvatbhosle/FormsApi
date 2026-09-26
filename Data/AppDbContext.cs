@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FormsApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace FormsApi.Data
 {
@@ -12,7 +13,7 @@ namespace FormsApi.Data
         {
         }
 
-        public DbSet<Models.FormData> FormData { get; set; } = null!;
+        public DbSet<Models.FormData> FormData => Set<FormData>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
