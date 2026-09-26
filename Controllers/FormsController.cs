@@ -1,4 +1,3 @@
-
 using Azure.Core;
 using FormsApi.Data;
 using FormsApi.Dtos;
@@ -9,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog.Core;
 using System.Net;
+using FormsApi.Extensions;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -55,8 +55,8 @@ public class FormsController : Controller
         var formdata = new FormData
         {
             Id = Guid.NewGuid(),
-            Subject = request.Subject!,
-            Description = request.Description,
+            Subject = request.Subject?.Sanitize()!,
+            Description = request.Description?.Sanitize(),
             DueDate = request.DueDate,
             Priority = request.Priority,
             Critical = request.Critical,
@@ -72,7 +72,7 @@ public class FormsController : Controller
     [ProducesResponseType(typeof(PagedResult<FormResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] FormListQuery query)
     {
-        var (items, total) = await _formDataRepository.ListAsync(query.Page, query.PageSize, query.SubjectFilter);
+        var (items, total) = await _formDataRepository.ListAsync(query.Page, query.PageSize, query.SubjectFilter?.Sanitize()!);
 
         var result = new PagedResult<FormResponse>(items.Select(FormResponse.FromEntity).ToList(), query.Page, query.PageSize, total);
 
@@ -84,6 +84,7 @@ public class FormsController : Controller
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFormRequest request)
     {
         var existing = await _formDataRepository.GetByIdAsync(id);
@@ -118,8 +119,8 @@ public class FormsController : Controller
 
         var updated = await _formDataRepository.UpdateAsync(id, expectedRowVersion, entity =>
         {
-            entity.Subject = request.Subject!;
-            entity.Description = request.Description;
+            entity.Subject = request.Subject?.Sanitize()!;
+            entity.Description = request.Description?.Sanitize();
             entity.DueDate = request.DueDate;
             entity.Priority = request.Priority;
             entity.Critical = request.Critical;
