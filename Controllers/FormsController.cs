@@ -7,6 +7,7 @@ using FormsApi.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog.Core;
+using System.Net;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -23,9 +24,9 @@ public class FormsController : Controller
 
     [HttpGet("{id:guid}")]
 
-    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetById(Guid id)
     {
-        var formData = await _formDataRepository.GetByIdAsync(id, cancellationToken);
+        var formData = await _formDataRepository.GetByIdAsync(id);
 
         if (formData == null)
         {
@@ -57,7 +58,7 @@ public class FormsController : Controller
             CreatedBy = "Bhagvat",
         };
 
-        var created = await _formDataRepository.CreateAsync(formdata, CancellationToken.None);
+        var created = await _formDataRepository.CreateAsync(formdata);
         return Ok(created);
     }
 
@@ -69,6 +70,56 @@ public class FormsController : Controller
         var result = new PagedResult<FormResponse>(items.Select(FormResponse.FromEntity).ToList(), query.Page, query.PageSize, total);
 
         return Ok(result);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFormRequest request)
+    {
+        var existing = await _formDataRepository.GetByIdAsync(id);
+        if (existing is null)
+        {
+            return NotFound($"Form '{id}' was not found.");
+        }
+
+        // Add authorization check here if needed, e.g., check if the current user is allowed to update this form.
+
+        byte[] expectedRowVersion;
+        try
+        {
+            expectedRowVersion = Convert.FromBase64String(request.RowVersion);
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new ApiError("Validation Failed", StatusCodes.Status400BadRequest,
+            Errors: new Dictionary<string, string[]> { ["RowVersion"] = new[] { "RowVersion must be a valid base64 value." } }));
+        }
+
+        var updated = await _formDataRepository.UpdateAsync(id, expectedRowVersion, entity =>
+        {
+            entity.Subject = request.Subject!;
+            entity.Description = request.Description;
+            entity.DueDate = request.DueDate;
+            entity.Priority = request.Priority;
+            entity.Critical = request.Critical;
+        });
+
+        return Ok(FormResponse.FromEntity(updated));
+    }
+    
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var existing = await _formDataRepository.GetByIdAsync(id);
+        if (existing is null)
+        {
+            return NotFound($"Form '{id}' was not found.");
+        }
+
+        // Add authorization check here if needed, e.g., check if the current user is allowed to delete this form.
+
+        await _formDataRepository.SoftDeleteAsync(id);
+
+        return NoContent();
     }
 
     public record PagedResult<T>(List<T> Items, int Page, int PageSize, int TotalCount)

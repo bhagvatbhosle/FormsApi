@@ -44,4 +44,7 @@ public class FormData : IValidatableObject
     /// lost updates on PUT/DELETE via optimistic concurrency.
     /// </summary>
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }

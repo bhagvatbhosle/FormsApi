@@ -1,8 +1,9 @@
 ﻿namespace FormsApi.Dtos
 {
-    public record CreateFormRequest(string Subject, string? Description, DateTime? DueDate, int? Priority, bool? Critical
-);
-    public record UpdateFormRequest(/* Define properties */);
+    public record CreateFormRequest(string Subject, string? Description, DateTime? DueDate, int? Priority, bool? Critical);
+
+    public record UpdateFormRequest(string Subject, string? Description, DateTime? DueDate, int? Priority, bool? Critical, string RowVersion);
+
     public record FormListQuery(int Page = 1, int PageSize = 20, string? SubjectFilter = null);
 
     public record FormResponse(
@@ -22,4 +23,6 @@
             f.Id, f.Subject, f.Description, f.DueDate, f.Priority, f.Critical,
             f.CreatedAt, f.UpdatedAt, f.CreatedBy, Convert.ToBase64String(f.RowVersion));
     }
+
+    public record ApiError(string Title, int Status, string? Detail = null, IDictionary<string, string[]>? Errors = null);
 }
