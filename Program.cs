@@ -1,6 +1,7 @@
 using FormsApi.Data;
 using FormsApi.Middleware;
 using FormsApi.Repositories;
+using FormsApi.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -27,6 +28,7 @@ namespace FormsApi
 
 
             builder.Services.AddScoped<IFormDataRepository, FormDataRepository>();
+            builder.Services.AddScoped<IFormAuthorizationService, Implementations.StubFormAuthorizationService>();
 
             // Add services to the container.
 

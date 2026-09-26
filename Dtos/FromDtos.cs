@@ -25,4 +25,6 @@
     }
 
     public record ApiError(string Title, int Status, string? Detail = null, IDictionary<string, string[]>? Errors = null);
+
+    public record ClaimsPrincipalLike(string UserId, IReadOnlyCollection<string> Roles);
 }

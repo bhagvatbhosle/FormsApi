@@ -4,6 +4,7 @@ using FormsApi.Data;
 using FormsApi.Dtos;
 using FormsApi.Models;
 using FormsApi.Repositories;
+using FormsApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog.Core;
@@ -14,12 +15,14 @@ using System.Net;
 public class FormsController : Controller
 {
     private readonly IFormDataRepository _formDataRepository;
+    private readonly IFormAuthorizationService _authorization;
     private readonly ILogger<FormsController> _logger;
 
-    public FormsController(IFormDataRepository formDataRepository, ILogger<FormsController> logger)
+    public FormsController(IFormDataRepository formDataRepository, IFormAuthorizationService authorization, ILogger<FormsController> logger)
     {
         _logger = logger;
         _formDataRepository = formDataRepository;
+        _authorization = authorization;
     }
 
     [HttpGet("{id:guid}")]
@@ -58,7 +61,7 @@ public class FormsController : Controller
             Priority = request.Priority,
             Critical = request.Critical,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "Bhagvat",
+            CreatedBy = CurrentUserId(),
         };
 
         var created = await _formDataRepository.CreateAsync(formdata);
@@ -80,6 +83,7 @@ public class FormsController : Controller
     [ProducesResponseType(typeof(FormResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFormRequest request)
     {
         var existing = await _formDataRepository.GetByIdAsync(id);
@@ -89,6 +93,11 @@ public class FormsController : Controller
         }
 
         // Add authorization check here if needed, e.g., check if the current user is allowed to update this form.
+        if (!await _authorization.UserCanModifyAsync(CurrentUser(), existing))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+            new ApiError("Forbidden", StatusCodes.Status403Forbidden, "You do not have permission to access this form."));
+        }
 
         if (string.IsNullOrWhiteSpace(request.RowVersion))
         {
@@ -122,6 +131,7 @@ public class FormsController : Controller
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var existing = await _formDataRepository.GetByIdAsync(id);
@@ -131,6 +141,11 @@ public class FormsController : Controller
         }
 
         // Add authorization check here if needed, e.g., check if the current user is allowed to delete this form.
+        if (!await _authorization.UserCanModifyAsync(CurrentUser(), existing))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+             new ApiError("Forbidden", StatusCodes.Status403Forbidden, "You do not have permission to access this form."));
+        }
 
         await _formDataRepository.SoftDeleteAsync(id);
 
@@ -141,4 +156,9 @@ public class FormsController : Controller
     {
         public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
     }
+
+    private string CurrentUserId() => User?.Identity?.Name ?? "anonymous";
+
+    private ClaimsPrincipalLike CurrentUser() =>
+        new(CurrentUserId(), Array.Empty<string>());
 }
