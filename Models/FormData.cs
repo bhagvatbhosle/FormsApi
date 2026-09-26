@@ -38,4 +38,10 @@ public class FormData : IValidatableObject
                 new[] { nameof(DueDate) });
         }
     }
+
+    /// <summary>
+    /// Concurrency token (SQL Server ROWVERSION). EF Core uses this to detect
+    /// lost updates on PUT/DELETE via optimistic concurrency.
+    /// </summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }

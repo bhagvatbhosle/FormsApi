@@ -1,5 +1,7 @@
 
+using Azure.Core;
 using FormsApi.Data;
+using FormsApi.Dtos;
 using FormsApi.Models;
 using FormsApi.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +21,7 @@ public class FormsController : Controller
         _formDataRepository = formDataRepository;
     }
 
-    [HttpGet]
+    [HttpGet("{id:guid}")]
 
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
     {
@@ -36,14 +38,41 @@ public class FormsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] FormData formdata)
+    public async Task<IActionResult> Create([FromBody] CreateFormRequest request)
     {
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
         }
 
+        var formdata = new FormData
+        {
+            Id = Guid.NewGuid(),
+            Subject = request.Subject!,
+            Description = request.Description,
+            DueDate = request.DueDate,
+            Priority = request.Priority,
+            Critical = request.Critical,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "Bhagvat",
+        };
+
         var created = await _formDataRepository.CreateAsync(formdata, CancellationToken.None);
         return Ok(created);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> List([FromQuery] FormListQuery query)
+    {
+        var (items, total) = await _formDataRepository.ListAsync(query.Page, query.PageSize, query.SubjectFilter);
+
+        var result = new PagedResult<FormResponse>(items.Select(FormResponse.FromEntity).ToList(), query.Page, query.PageSize, total);
+
+        return Ok(result);
+    }
+
+    public record PagedResult<T>(List<T> Items, int Page, int PageSize, int TotalCount)
+    {
+        public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
     }
 }

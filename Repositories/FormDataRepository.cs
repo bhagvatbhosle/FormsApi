@@ -24,6 +24,25 @@ namespace FormsApi.Repositories
         {
             return await _context.FormData.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
         }
-        
+
+        public async Task<(List<FormData> items, int total)> ListAsync(int page, int pageSize, string subjectFilter)
+        {
+            var query = _context.FormData.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(subjectFilter))
+            {
+                query = query.Where(f => f.Subject.Contains(subjectFilter));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(f => f.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
     }
 }
