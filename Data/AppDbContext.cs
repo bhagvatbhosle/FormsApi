@@ -21,10 +21,15 @@ namespace FormsApi.Data
 
             modelBuilder.Entity<Models.FormData>(entity =>
             {
+                entity.ToTable("FormData");
+
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Subject).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1024);
                 entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(256);
+                
+                entity.Property(f => f.RowVersion).IsRowVersion();
+                entity.HasQueryFilter(f => !f.IsDeleted);
             });
         }
     }

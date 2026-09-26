@@ -23,7 +23,8 @@ public class FormsController : Controller
     }
 
     [HttpGet("{id:guid}")]
-
+    [ProducesResponseType(typeof(FormResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var formData = await _formDataRepository.GetByIdAsync(id);
@@ -39,6 +40,8 @@ public class FormsController : Controller
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(FormResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateFormRequest request)
     {
         if (!ModelState.IsValid)
@@ -63,6 +66,7 @@ public class FormsController : Controller
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<FormResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] FormListQuery query)
     {
         var (items, total) = await _formDataRepository.ListAsync(query.Page, query.PageSize, query.SubjectFilter);
@@ -73,25 +77,34 @@ public class FormsController : Controller
     }
 
     [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(FormResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFormRequest request)
     {
         var existing = await _formDataRepository.GetByIdAsync(id);
         if (existing is null)
         {
-            return NotFound($"Form '{id}' was not found.");
+            return NotFound(new ApiError("Not Found", StatusCodes.Status404NotFound, $"Form '{id}' was not found."));
         }
 
         // Add authorization check here if needed, e.g., check if the current user is allowed to update this form.
 
+        if (string.IsNullOrWhiteSpace(request.RowVersion))
+        {
+            return BadRequest(new ApiError("Validation Failed", StatusCodes.Status400BadRequest,
+                Errors: new Dictionary<string, string[]> { ["RowVersion"] = new[] { "RowVersion is required." } }));
+        }
+
         byte[] expectedRowVersion;
         try
         {
-            expectedRowVersion = Convert.FromBase64String(request.RowVersion);
+            expectedRowVersion = Convert.FromBase64String(request.RowVersion!);
         }
         catch (FormatException)
         {
             return BadRequest(new ApiError("Validation Failed", StatusCodes.Status400BadRequest,
-            Errors: new Dictionary<string, string[]> { ["RowVersion"] = new[] { "RowVersion must be a valid base64 value." } }));
+                Errors: new Dictionary<string, string[]> { ["RowVersion"] = new[] { "RowVersion must be a valid base64 value." } }));
         }
 
         var updated = await _formDataRepository.UpdateAsync(id, expectedRowVersion, entity =>
@@ -107,6 +120,8 @@ public class FormsController : Controller
     }
     
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var existing = await _formDataRepository.GetByIdAsync(id);

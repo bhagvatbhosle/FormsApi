@@ -21,7 +21,7 @@
     {
         public static FormResponse FromEntity(Models.FormData f) => new(
             f.Id, f.Subject, f.Description, f.DueDate, f.Priority, f.Critical,
-            f.CreatedAt, f.UpdatedAt, f.CreatedBy, Convert.ToBase64String(f.RowVersion));
+            f.CreatedAt, f.UpdatedAt, f.CreatedBy, f.RowVersion is null ? string.Empty : Convert.ToBase64String(f.RowVersion));
     }
 
     public record ApiError(string Title, int Status, string? Detail = null, IDictionary<string, string[]>? Errors = null);

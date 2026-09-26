@@ -1,4 +1,5 @@
 using FormsApi.Data;
+using FormsApi.Middleware;
 using FormsApi.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -44,6 +45,8 @@ namespace FormsApi
             builder.Host.UseSerilog();
 
             var app = builder.Build();
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
