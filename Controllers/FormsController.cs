@@ -30,21 +30,20 @@ public class FormsController : Controller
             _logger.LogWarning("Form data with ID {Id} not found.", id);
             return NotFound();
         }
-        
+
         _logger.LogInformation("Retrieved form data with ID {Id}.", id);
         return Ok(formData);
     }
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create([FromBody] FormData formdata)
     {
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
-            var created = _formDataRepository.CreateAsync(formdata, cancellationToken: default);
-
-            return Ok(created);
+            return ValidationProblem(ModelState);
         }
-        return View(formdata);
+
+        var created = await _formDataRepository.CreateAsync(formdata, CancellationToken.None);
+        return Ok(created);
     }
 }

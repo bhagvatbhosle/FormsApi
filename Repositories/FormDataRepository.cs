@@ -13,9 +13,11 @@ namespace FormsApi.Repositories
             _context = context;
         }
 
-        public Task<FormData> CreateAsync(FormData formdata, CancellationToken cancellationToken = default)
+        public async Task<FormData> CreateAsync(FormData formdata, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            _context.FormData.Add(formdata);
+            await _context.SaveChangesAsync(cancellationToken);
+            return formdata;
         }
 
         public async Task<FormData?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)

@@ -30,6 +30,7 @@ namespace FormsApi
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddAntiforgery();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddSwaggerGen();
 
