@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../FormsApi.Tests/FormsApi.Tests.csproj" Id="7091db1c-9211-4ebe-a868-5dd8d7d158bb" />
   <Project Path="FormsApi.csproj" />
 </Solution>
