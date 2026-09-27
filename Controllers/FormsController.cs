@@ -35,11 +35,17 @@ public class FormsController : Controller
         if (formData == null)
         {
             _logger.LogWarning("Form data with ID {Id} not found.", id);
-            return NotFound();
+            return NotFound(new ApiError("Not Found", StatusCodes.Status404NotFound, $"Form '{id}' was not found."));
+        }
+
+        if (!await _authorization.UserCanViewAsync(CurrentUser(), formData))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+            new ApiError("Forbidden", StatusCodes.Status403Forbidden, "You do not have permission to access this form."));
         }
 
         _logger.LogInformation("Retrieved form data with ID {Id}.", id);
-        return Ok(formData);
+        return Ok(FormResponse.FromEntity(formData));
     }
 
     [HttpPost]
@@ -49,7 +55,7 @@ public class FormsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            return ValidationProblem(ModelState);
+            return BadRequest();
         }
 
         var formdata = new FormData
@@ -65,7 +71,7 @@ public class FormsController : Controller
         };
 
         var created = await _formDataRepository.CreateAsync(formdata);
-        return Ok(created);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, FormResponse.FromEntity(created));
     }
 
     [HttpGet]
